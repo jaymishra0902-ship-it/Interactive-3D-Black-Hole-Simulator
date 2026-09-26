@@ -1,0 +1,504 @@
+<!doctype html>
+<html lang="en">
+	<head>
+		<meta charset="UTF-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+		<meta name="theme-color" content="#020208" />
+		<title>Event Horizon | Deep Space Observatory</title>
+		<style>
+			:root {
+				color-scheme: dark;
+				font-family: "Segoe UI", sans-serif;
+				background: #020208;
+				color: #f5f5f5;
+				font-synthesis: none;
+				text-rendering: optimizeLegibility;
+			}
+
+			* {
+				box-sizing: border-box;
+			}
+
+			body {
+				width: 100%;
+				height: 100%;
+				min-width: 320px;
+				min-height: 100vh;
+				margin: 0;
+				overflow: hidden;
+				background: #020208;
+			}
+
+			#canvas-container {
+				position: fixed;
+				inset: 0;
+			}
+
+			#canvas-container canvas {
+				display: block;
+				width: 100%;
+				height: 100%;
+				touch-action: none;
+			}
+
+			.ui-panel {
+				position: fixed;
+				z-index: 1;
+				top: 24px;
+				left: 24px;
+				width: min(300px, calc(100vw - 48px));
+				max-height: calc(100vh - 48px);
+				overflow-y: auto;
+				padding: 22px;
+				border: 1px solid rgb(255 255 255 / 18%);
+				border-radius: 8px;
+				background: rgb(14 14 14 / 72%);
+				box-shadow: 0 12px 48px rgb(0 0 0 / 35%);
+				backdrop-filter: blur(18px);
+				-webkit-backdrop-filter: blur(18px);
+				transition: opacity 0.3s ease, visibility 0s linear 0s;
+			}
+
+			.ui-panel.is-hidden {
+				opacity: 0;
+				pointer-events: none;
+				visibility: hidden;
+				transition: opacity 0.3s ease, visibility 0s linear 0.3s;
+			}
+
+			#show-ui {
+				position: fixed;
+				z-index: 5;
+				right: 24px;
+				bottom: 24px;
+				display: none;
+				width: auto;
+				min-height: 38px;
+				padding: 0 16px;
+				border-color: rgb(255 255 255 / 45%);
+				background: rgb(14 14 14 / 82%);
+				color: #f5f5f5;
+				backdrop-filter: blur(12px);
+				-webkit-backdrop-filter: blur(12px);
+			}
+
+			.photo-capture #show-ui {
+				visibility: hidden !important;
+			}
+
+			.eyebrow {
+				margin: 0 0 8px;
+				color: #a0a0a0;
+				font-size: 10px;
+				font-weight: 600;
+				letter-spacing: 0.14em;
+				text-transform: uppercase;
+			}
+
+			h1 {
+				margin: 0 0 18px;
+				font-size: 17px;
+				font-weight: 500;
+				letter-spacing: 0.08em;
+			}
+
+			.control-heading {
+				display: flex;
+				align-items: center;
+				justify-content: space-between;
+				margin-bottom: 12px;
+				color: #d7d7d7;
+				font-size: 12px;
+			}
+
+			#mass-value {
+				color: #fff;
+				font-variant-numeric: tabular-nums;
+			}
+
+			.physics-readout {
+				margin: 0 0 18px;
+				padding: 12px;
+				border: 1px solid rgb(255 255 255 / 14%);
+				border-radius: 4px;
+				background: rgb(255 255 255 / 3%);
+			}
+
+			.physics-readout h2 {
+				margin: 0 0 10px;
+				color: #a0a0a0;
+				font-size: 9px;
+				font-weight: 600;
+				letter-spacing: 0.14em;
+			}
+
+			.time-row {
+				display: grid;
+				grid-template-columns: 1fr auto auto;
+				gap: 8px;
+				align-items: baseline;
+				padding-top: 7px;
+				color: #c8c8c8;
+				font-size: 10px;
+			}
+
+			.time-row output {
+				color: #fff;
+				font-variant-numeric: tabular-nums;
+			}
+
+			#dilation-rate {
+				min-width: 36px;
+				color: #a0a0a0;
+				text-align: right;
+			}
+
+			.control-output {
+				color: #fff;
+				font-variant-numeric: tabular-nums;
+			}
+
+			input[type="range"] {
+				display: block;
+				width: 100%;
+				height: 3px;
+				margin: 0 0 22px;
+				accent-color: #f5f5f5;
+				cursor: pointer;
+			}
+
+			.theme-switcher {
+				display: grid;
+				grid-template-columns: repeat(3, minmax(0, 1fr));
+				gap: 6px;
+				margin-bottom: 16px;
+			}
+
+			.mode-switcher {
+				display: grid;
+				grid-template-columns: repeat(2, minmax(0, 1fr));
+				gap: 6px;
+				margin: 0 0 14px;
+			}
+
+			.quality-switcher {
+				display: grid;
+				grid-template-columns: repeat(4, minmax(0, 1fr));
+				gap: 6px;
+				margin: 0 0 14px;
+			}
+
+			.quality-switcher button {
+				min-height: 38px;
+				border-color: rgb(255 255 255 / 24%);
+				background: transparent;
+				color: #dedede;
+				font-size: 8px;
+				letter-spacing: 0.06em;
+			}
+
+			.quality-switcher button[aria-pressed="true"] {
+				background: #f5f5f5;
+				color: #090909;
+			}
+
+			#planet-orbit-lines {
+				margin: 0 0 10px;
+				min-height: 34px;
+				border-color: rgb(255 255 255 / 30%);
+				background: transparent;
+				color: #dedede;
+				font-size: 9px;
+			}
+
+			.mode-switcher button {
+				min-height: 32px;
+				border-color: rgb(255 255 255 / 24%);
+				background: transparent;
+				color: #dedede;
+				font-size: 9px;
+				letter-spacing: 0.08em;
+			}
+
+			.mode-switcher button[aria-pressed="true"] {
+				background: #f5f5f5;
+				color: #090909;
+			}
+
+			.theme-switcher button {
+				display: flex;
+				align-items: center;
+				justify-content: center;
+				gap: 5px;
+				min-width: 0;
+				min-height: 34px;
+				padding: 0 4px;
+				border-color: rgb(255 255 255 / 24%);
+				background: transparent;
+				color: #dedede;
+				font-size: 8px;
+				letter-spacing: 0.035em;
+			}
+
+			.theme-switcher button::before {
+				width: 6px;
+				height: 6px;
+				flex: 0 0 6px;
+				border-radius: 50%;
+				background: var(--swatch);
+				content: "";
+			}
+
+			.theme-switcher button[aria-pressed="true"] {
+				background: #f5f5f5;
+				color: #090909;
+			}
+
+			#audio-toggle {
+				margin-top: 8px;
+				border-color: rgb(255 255 255 / 30%);
+				background: transparent;
+				color: #dedede;
+			}
+
+			#audio-toggle[aria-pressed="true"] {
+				border-color: #fff;
+				color: #fff;
+			}
+
+			.trajectory-readout {
+				margin: -8px 0 16px;
+				color: #a9dfff;
+				font-size: 9px;
+				letter-spacing: 0.1em;
+			}
+
+			.photo-tools {
+				display: grid;
+				grid-template-columns: repeat(2, minmax(0, 1fr));
+				gap: 6px;
+				margin-top: 8px;
+			}
+
+			.photo-tools button {
+				min-height: 34px;
+				padding: 0 5px;
+				border-color: rgb(255 255 255 / 24%);
+				background: transparent;
+				color: #dedede;
+				font-size: 9px;
+				letter-spacing: 0.06em;
+			}
+
+			#turbulence-toggle[aria-pressed="false"] {
+				border-color: rgb(255 255 255 / 24%);
+				background: transparent;
+				color: #a0a0a0;
+			}
+
+			.hud-grid-overlay {
+				position: fixed;
+				z-index: 0;
+				inset: 0;
+				display: none;
+				pointer-events: none;
+				background-image:
+					linear-gradient(rgb(108 209 255 / 11%) 1px, transparent 1px),
+					linear-gradient(90deg, rgb(108 209 255 / 11%) 1px, transparent 1px);
+				background-size: 48px 48px;
+				mask-image: radial-gradient(ellipse at var(--hud-x, 50%) var(--hud-y, 50%), #000 8%, transparent 78%);
+			}
+
+			.hud-grid-overlay.is-visible {
+				display: block;
+			}
+
+			.hud-grid-overlay::before,
+			.hud-grid-overlay::after {
+				position: absolute;
+				top: var(--hud-y, 50%);
+				left: var(--hud-x, 50%);
+				border: 1px solid rgb(117 221 255 / 58%);
+				border-radius: 50%;
+				box-shadow: 0 0 18px rgb(52 192 255 / 28%);
+				content: "";
+				transform: translate(-50%, -50%);
+			}
+
+			.hud-grid-overlay::before {
+				width: min(34vw, 280px);
+				aspect-ratio: 1;
+			}
+
+			.hud-grid-overlay::after {
+				width: min(16vw, 132px);
+				aspect-ratio: 1;
+				border-style: dashed;
+			}
+
+			.photo-capture .ui-panel,
+			.photo-capture .hud-grid-overlay {
+				visibility: hidden !important;
+			}
+
+			button {
+				width: 100%;
+				min-height: 42px;
+				border: 1px solid #f5f5f5;
+				border-radius: 4px;
+				background: #f5f5f5;
+				color: #090909;
+				font: inherit;
+				font-size: 11px;
+				font-weight: 700;
+				letter-spacing: 0.12em;
+				cursor: pointer;
+				transition: background 140ms ease, color 140ms ease;
+			}
+
+			button:hover {
+				background: transparent;
+				color: #f5f5f5;
+			}
+
+			button:focus-visible,
+			input:focus-visible {
+				outline: 2px solid #fff;
+				outline-offset: 4px;
+			}
+
+			@media (max-width: 760px) {
+				.ui-panel {
+					top: auto;
+					right: 8px;
+					bottom: 8px;
+					left: 8px;
+					width: auto;
+					max-height: min(48dvh, 420px);
+					padding: 14px;
+					overscroll-behavior: contain;
+					touch-action: pan-y;
+				}
+
+				.ui-panel h1 {
+					margin-bottom: 12px;
+				}
+
+				.ui-panel button {
+					min-height: 44px;
+				}
+
+				.quality-switcher button {
+					min-height: 44px;
+				}
+
+				input[type="range"] {
+					min-height: 26px;
+					margin-bottom: 12px;
+					touch-action: pan-x;
+				}
+
+				#show-ui {
+					right: max(12px, env(safe-area-inset-right));
+					bottom: max(12px, env(safe-area-inset-bottom));
+					min-height: 46px;
+				}
+			}
+
+			@media (max-width: 380px) {
+				.ui-panel {
+					max-height: 52dvh;
+					padding: 12px;
+				}
+
+				.theme-switcher button {
+					font-size: 7px;
+				}
+			}
+		</style>
+	</head>
+	<body>
+		<main id="canvas-container" aria-label="Interactive black hole scene"></main>
+		<section class="ui-panel" aria-labelledby="panel-title">
+			<p class="eyebrow">Deep space observatory</p>
+			<h1 id="panel-title">EVENT HORIZON</h1>
+			<section class="physics-readout" aria-labelledby="time-title">
+				<h2 id="time-title">TIME DILATION</h2>
+				<div class="time-row">
+					<span>EARTH TIME</span>
+					<output id="earth-time">00:00.0</output>
+					<span></span>
+				</div>
+				<div class="time-row">
+					<span>EVENT HORIZON</span>
+					<output id="horizon-time">00:00.0</output>
+					<output id="dilation-rate">1.00×</output>
+				</div>
+			</section>
+			<label class="control-heading" for="mass-slider">
+				<span>Mass</span>
+				<output id="mass-value" for="mass-slider">50%</output>
+			</label>
+			<input id="mass-slider" type="range" min="10" max="100" value="50" />
+			<output class="trajectory-readout" id="trajectory-result">MOVE POINTER TO PREDICT</output>
+			<label class="control-heading" for="spin-speed">
+				<span>Disk spin speed</span>
+				<output class="control-output" id="spin-value" for="spin-speed">1.0×</output>
+			</label>
+			<input id="spin-speed" type="range" min="0.2" max="3" step="0.1" value="1" />
+			<label class="control-heading" for="particle-density">
+				<span>Particle density</span>
+				<output class="control-output" id="density-value" for="particle-density">80%</output>
+			</label>
+			<input id="particle-density" type="range" min="10" max="100" step="5" value="80" />
+			<label class="control-heading" for="galaxy-density">
+				<span>Galaxy density</span>
+				<output class="control-output" id="galaxy-density-value" for="galaxy-density">75%</output>
+			</label>
+			<input id="galaxy-density" type="range" min="10" max="100" step="5" value="75" />
+			<label class="control-heading" for="planet-orbit-speed">
+				<span>Planet orbit speed</span>
+				<output class="control-output" id="planet-speed-value" for="planet-orbit-speed">1.0x</output>
+			</label>
+			<input id="planet-orbit-speed" type="range" min="0.2" max="3" step="0.1" value="1" />
+			<label class="control-heading" for="disk-thickness">
+				<span>Disk thickness</span>
+				<output class="control-output" id="thickness-value" for="disk-thickness">1.0x</output>
+			</label>
+			<input id="disk-thickness" type="range" min="0.3" max="2.2" step="0.1" value="1" />
+			<label class="control-heading" for="core-temperature">
+				<span>Core temperature</span>
+				<output class="control-output" id="temperature-value" for="core-temperature">1.3x</output>
+			</label>
+			<input id="core-temperature" type="range" min="0.5" max="2.5" step="0.1" value="1.3" />
+			<button id="turbulence-toggle" type="button" aria-pressed="true">TURBULENCE NOISE: ON</button>
+			<div class="theme-switcher" role="group" aria-label="Color theme">
+				<button type="button" data-theme="interstellar" aria-pressed="true" style="--swatch: #ff9a38">INTERSTELLAR</button>
+				<button type="button" data-theme="magnetar" aria-pressed="false" style="--swatch: #43cfff">MAGNETAR</button>
+				<button type="button" data-theme="supernova" aria-pressed="false" style="--swatch: #ff4b85">SUPERNOVA</button>
+			</div>
+			<div class="mode-switcher" role="group" aria-label="Camera mode">
+				<button type="button" data-camera-mode="orbit" aria-pressed="true">ORBIT</button>
+				<button type="button" data-camera-mode="cinematic" aria-pressed="false">CINEMATIC</button>
+			</div>
+			<div class="quality-switcher" role="group" aria-label="Performance quality">
+				<button type="button" data-quality="auto" aria-pressed="true">AUTO</button>
+				<button type="button" data-quality="low" aria-pressed="false">LOW</button>
+				<button type="button" data-quality="high" aria-pressed="false">HIGH</button>
+				<button type="button" data-quality="ultra" aria-pressed="false">ULTRA</button>
+			</div>
+			<button id="planet-orbit-lines" type="button" aria-pressed="false">SHOW ORBIT LINES</button>
+			<button id="spawn-matter" type="button">SPAWN MATTER</button>
+			<button id="spawn-planet" type="button">SPAWN PLANET</button>
+			<button id="audio-toggle" type="button" aria-pressed="false">ENABLE SPACE AUDIO</button>
+			<div class="photo-tools">
+				<button id="photo-mode" type="button">PHOTO MODE</button>
+				<button id="hud-grid-toggle" type="button" aria-pressed="false">HUD GRID</button>
+			</div>
+			<button id="hide-ui" type="button">HIDE UI</button>
+		</section>
+		<div id="hud-grid-overlay" class="hud-grid-overlay" aria-hidden="true"></div>
+		<button id="show-ui" type="button" aria-hidden="true">SHOW UI</button>
+		<script type="module" src="/src/main.ts"></script>
+	</body>
+</html>
